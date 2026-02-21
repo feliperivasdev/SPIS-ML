@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import modules.data_handler as data_handler
 from modules.exploration_module import render_exploration_view
-from modules.model_Gutenberg_Richter_module import run_gr_analysis
+from modules.model_Gutenberg_Richter_module import run_gr_analysiser as run_gr_analysis
 from modules.model_log_regression_module import run_log_regression_analysis
 from preprocessor import preprocess_seismic_data
 
