@@ -74,9 +74,10 @@ def update_exploration_ui(mag_range, start_date, end_date, clickData):
         dff = dff[(dff['time'] >= start_date) & (dff['time'] <= end_date)]
 
     # 2. Mapa
+    # Usar hover_name válido (mag o time)
     fig_map = px.scatter_mapbox(
         dff, lat="latitude", lon="longitude", size="mag", color="mag",
-        hover_name="place", mapbox_style="carto-positron", zoom=2,
+        hover_name="mag", mapbox_style="carto-positron", zoom=2,
         color_continuous_scale="Viridis"
     )
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, clickmode='event+select')
