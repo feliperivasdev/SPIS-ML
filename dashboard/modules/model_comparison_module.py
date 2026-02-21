@@ -27,7 +27,7 @@ def render_model_comparison(df):
     
     # 2. Componente de Ficha Técnica
     ficha_tecnica = dbc.Card([
-        dbc.CardHeader(html.H5("📋 Ficha Técnica del Análisis", className="mb-0 text-white")),
+        dbc.CardHeader(html.H5("Ficha Técnica del Análisis", className="mb-0 text-black")),
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
