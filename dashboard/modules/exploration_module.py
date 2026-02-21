@@ -1,63 +1,56 @@
 import pandas as pd
 import dash_bootstrap_components as dbc
-from dash import dcc, html, callback, Input, Output, State, ctx
+from dash import dcc, html, callback, Input, Output
 import plotly.express as px
-import io
-import base64
+import modules.data_handler as data_handler
 
 def render_exploration_view():
     return html.Div([
-        dbc.Container([
-            dbc.Row([
-                # --- PANEL IZQUIERDO: FILTROS DINÁMICOS ---
-                dbc.Col([
-                    html.Div([
-                        html.H4("🔍 Exploración Inteligente", className="mb-4 text-primary"),
-                        
-                        html.Label("Búsqueda por Magnitud"),
-                        dcc.RangeSlider(
-                            id="mag_range", min=0, max=10, step=0.1, value=[4, 9],
-                            marks={i: str(i) for i in range(11)},
-                            className="mb-4"
-                        ),
-                        
-                        html.Label("Rango de Fecha"),
-                        dcc.DatePickerRange(
-                            id="date_picker",
-                            className="mb-4 w-100"
-                        ),
+        dbc.Row([
+            # Panel de Filtros
+            dbc.Col([
+                html.Div([
+                    html.H4("🔍 Filtros Dinámicos", className="text-primary fw-bold mb-4"),
+                    
+                    html.Label("Rango de Magnitud", className="fw-bold"),
+                    dcc.RangeSlider(
+                        id="mag_range", min=0, max=10, step=0.1, value=[4, 8],
+                        marks={i: str(i) for i in range(11)},
+                        className="mb-4"
+                    ),
+                    
+                    html.Label("Rango de Fechas", className="fw-bold"),
+                    dcc.DatePickerRange(
+                        id="date_picker",
+                        className="w-100 mb-4",
+                        display_format='YYYY-MM-DD'
+                    ),
+                    
+                    html.Hr(),
+                    html.H6("🧠 Info del Evento", className="text-secondary"),
+                    html.Div(id="selected-event-info", children=[
+                        html.P("Haz clic en un sismo del mapa para ver sus detalles.", className="small text-muted italic")
+                    ], className="p-3 border rounded bg-light")
+                    
+                ], className="p-4 shadow-sm bg-white rounded", style={"minHeight": "80vh"})
+            ], width=3),
 
-                        html.Hr(),
-                        html.H6("🧠 Evento Seleccionado"),
-                        html.Div(id="selected-event-info", children=[
-                            html.P("Haz clic en un sismo en el mapa para analizarlo.", className="text-muted small")
-                        ]),
-                        
-                        html.Hr(),
-                        dbc.Button("Encontrar Eventos Similares", id="btn-similar", color="info", className="w-100 mb-2"),
-                        
-                    ], className="p-4 shadow-sm bg-white rounded", style={"height": "90vh", "overflowY": "auto"})
-                ], width=3),
-
-                # --- PANEL DERECHO: MAPA Y GRÁFICOS RESALTADOS ---
-                dbc.Col([
-                    html.Div([
+            # Visualizaciones
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardBody([
                         dcc.Loading(
-                            dcc.Graph(id="mapa-sismos", style={"height": "60vh"}, config={'displayModeBar': True})
+                            type="default",
+                            children=dcc.Graph(id="mapa-sismos", style={"height": "50vh"})
                         ),
-                        html.Div([
-                            dbc.Row([
-                                dbc.Col(dcc.Graph(id="graph-time-series", style={"height": "30vh"}), width=6),
-                                dbc.Col(dcc.Graph(id="graph-depth-dist", style={"height": "30vh"}), width=6),
-                            ])
-                        ], className="mt-3")
-                    ], className="p-2 shadow-sm bg-white rounded")
-                ], width=9)
-            ])
-        ], fluid=True, className="mt-3")
+                        html.Hr(),
+                        dcc.Graph(id="graph-time-series", style={"height": "30vh"})
+                    ])
+                ], className="shadow-sm")
+            ], width=9)
+        ])
     ])
 
-# --- LÓGICA DE ACTUALIZACIÓN ---
 @callback(
     [Output("mapa-sismos", "figure"),
      Output("selected-event-info", "children"),
@@ -65,55 +58,22 @@ def render_exploration_view():
     [Input("mag_range", "value"),
      Input("date_picker", "start_date"),
      Input("date_picker", "end_date"),
-     Input("mapa-sismos", "clickData")],
-    [State("stored-data-raw", "data")]
+     Input("mapa-sismos", "clickData")]
 )
-def update_intelligence(mag_range, start, end, clickData, contents):
-    if not contents:
-        return px.scatter_mapbox(lat=[0], lon=[0]), "Cargue un archivo primero", px.line()
-
-    # 1. Carga eficiente (Aquí podrías usar una caché para no repetir esto)
-    df = None
-    try:
-        if isinstance(contents, dict):
-            if contents.get('type') == 'csv':
-                content_type, content_string = contents['data'].split(',')
-                decoded = base64.b64decode(content_string)
-                df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-            elif contents.get('type') == 'json':
-                df = pd.read_json(contents['data'], orient='records')
-        else:
-            content_type, content_string = contents.split(',')
-            decoded = base64.b64decode(content_string)
-            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-    except Exception:
-        return px.scatter_mapbox(lat=[0], lon=[0]), "Error leyendo datos", px.line()
+def update_exploration_ui(mag_range, start_date, end_date, clickData):
+    df = data_handler.get_data()
     
-    # Pre-procesamiento básico
-    df['time'] = pd.to_datetime(df['time'])
-    
-    # 2. Filtros dinámicos
-    mask = (df['mag'] >= mag_range[0]) & (df['mag'] <= mag_range[1])
-    dff = df[mask]
+    if df is None:
+        empty_fig = px.scatter_mapbox(lat=[0], lon=[0], zoom=1).update_layout(mapbox_style="carto-positron")
+        return empty_fig, "No hay datos.", px.line()
 
-    # 3. Lógica de "Seleccionar sismo directamente en el mapa"
-    info_panel = html.P("Haz clic en un sismo en el mapa para analizarlo.", className="text-muted small")
-    highlight_point = None
+    # 1. Filtrado
+    dff = df[(df['mag'] >= mag_range[0]) & (df['mag'] <= mag_range[1])]
     
-    if clickData:
-        point_idx = clickData['points'][0]['pointIndex']
-        # Obtenemos los datos del punto clicado
-        selected_row = dff.iloc[point_idx]
-        highlight_point = selected_row
-        
-        info_panel = html.Div([
-            html.B(f"📍 {selected_row['place']}"),
-            html.P(f"Magnitud: {selected_row['mag']}"),
-            html.P(f"Profundidad: {selected_row['depth']} km"),
-            html.P(f"Fecha: {selected_row['time'].strftime('%Y-%m-%d')}")
-        ], className="alert alert-primary p-2")
+    if start_date and end_date:
+        dff = dff[(dff['time'] >= start_date) & (dff['time'] <= end_date)]
 
-    # 4. Crear Mapa
+    # 2. Mapa
     fig_map = px.scatter_mapbox(
         dff, lat="latitude", lon="longitude", size="mag", color="mag",
         hover_name="place", mapbox_style="carto-positron", zoom=2,
@@ -121,10 +81,20 @@ def update_intelligence(mag_range, start, end, clickData, contents):
     )
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, clickmode='event+select')
 
-    # 5. Gráfico de serie temporal con resaltado
-    fig_time = px.scatter(dff, x="time", y="mag", title="Evolución Temporal")
-    if highlight_point is not None:
-        fig_time.add_scatter(x=[highlight_point['time']], y=[highlight_point['mag']], 
-                             mode="markers", marker=dict(size=15, color="red"), name="Seleccionado")
+    # 3. Info Panel
+    info = html.P("Haz clic en un sismo del mapa.", className="small text-muted")
+    if clickData:
+        p = clickData['points'][0]
+        lugar = p.get('hovertext', 'Desconocido')
+        mag = p.get('marker.size', 'N/A')
+        info = html.Div([
+            html.B(f"📍 {lugar}"),
+            html.P(f"Magnitud: {mag}", className="mb-0")
+        ])
 
-    return fig_map, info_panel, fig_time
+    # 4. Serie Temporal
+    dff_sorted = dff.sort_values('time')
+    fig_time = px.line(dff_sorted, x='time', y='mag', title="Evolución de Magnitudes")
+    fig_time.update_layout(template="plotly_white", margin={"t":30})
+
+    return fig_map, info, fig_time

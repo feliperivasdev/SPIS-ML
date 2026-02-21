@@ -78,3 +78,8 @@ def calcular_gutenberg_richter(df, magnitud_col='mag'):
     ])
 
     return layout
+
+
+def run_gr_analysis(df, magnitud_col='mag'):
+    """Compatibilidad: wrapper que expone la API esperada por la app."""
+    return calcular_gutenberg_richter(df, magnitud_col=magnitud_col)
