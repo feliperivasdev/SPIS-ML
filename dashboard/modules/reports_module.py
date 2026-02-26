@@ -94,6 +94,22 @@ def sync_report_ui(mags, depths, start, end):
     return fig, i1, i2, i3
 
 @callback(
+    Output("down-csv", "data"),
+    Input("btn-csv-gen", "n_clicks"),
+    [State("rep-mag", "value"), State("rep-depth", "value"),
+     State("rep-dates", "start_date"), State("rep-dates", "end_date")],
+    prevent_initial_call=True
+)
+def generate_filtered_csv(n, mags, depths, start, end):
+    from modules import data_handler
+    df = data_handler.get_data()
+    dff = df[(df['mag'] >= mags[0]) & (df['mag'] <= mags[1]) &
+             (df['depth'] >= depths[0]) & (df['depth'] <= depths[1]) &
+             (df['time'] >= start) & (df['time'] <= end)]
+    csv_bytes = dff.to_csv(index=False).encode('utf-8')
+    return dcc.send_bytes(csv_bytes, "Base_Sismos_Filtrada.csv")
+
+@callback(
     Output("down-pdf", "data"),
     Input("btn-pdf-gen", "n_clicks"),
     [State("rep-mag", "value"), State("rep-depth", "value"),

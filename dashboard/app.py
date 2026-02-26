@@ -22,6 +22,7 @@ from preprocessor import preprocess_seismic_data
 app = dash.Dash(__name__, 
                 external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP], 
                 suppress_callback_exceptions=True)
+app.title = "SPIS-ML | Seismic Performance Intelligent System"
 
 # 2. Referencia para el servidor (Necesario para Render/Gunicorn)
 server = app.server
@@ -59,7 +60,7 @@ def render_landing_page():
                                 },
                                 multiple=False
                             ),
-                            html.Div(id='file-name-display', className="text-center mb-3 text-muted fw-bold"),
+                            html.Div(id='file-name-display', className="text-center mb-3 text-primary fw-bold"),
                             dbc.Button("🚀 Procesar e Iniciar Dashboard", id="btn-run-process", color="success", className="w-100 shadow-sm"),
                             html.Div(id='load-status', className="mt-3")
                         ])
@@ -120,9 +121,20 @@ def render_tab_content(active_tab):
     elif active_tab == "tab-density": return render_density_analysis(df)
     elif active_tab == "tab-reports": return render_reports_module(df)
 
+# --- CALLBACK PARA MOSTRAR NOMBRE DE ARCHIVO ---
+@app.callback(
+    Output('file-name-display', 'children'),
+    Input('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def show_filename(filename):
+    if filename:
+        return f"📄 Archivo seleccionado: {filename}"
+    return ""
+
 # --- CALLBACK DE PROCESAMIENTO ---
 @app.callback(
-    [Output('app-state', 'data'), Output('load-status', 'children'), Output('file-name-display', 'children')],
+    [Output('app-state', 'data'), Output('load-status', 'children')],
     Input('btn-run-process', 'n_clicks'),
     State('upload-data', 'contents'),
     State('upload-data', 'filename'),
@@ -130,7 +142,7 @@ def render_tab_content(active_tab):
 )
 def process_and_start(n_clicks, contents, filename):
     if not contents:
-        return dash.no_update, dbc.Alert("Por favor selecciona un archivo CSV.", color="warning"), ""
+        return dash.no_update, dbc.Alert("Por favor selecciona un archivo CSV.", color="warning")
     
     try:
         content_string = contents.split(',')[1]
@@ -144,12 +156,12 @@ def process_and_start(n_clicks, contents, filename):
         
         # Llamar al preprocesador (el que limpia los 600MB)
         if preprocess_seismic_data(csv_path):
-            return {'phase': 1}, "", f"✅ Archivo cargado: {filename}"
+            return {'phase': 1}, dbc.Alert(f"✅ Dataset {filename} procesado correctamente. Iniciando dashboard...", color="success")
         else:
-            return {'phase': 0}, dbc.Alert("❌ El preprocesador falló. Revisa el formato.", color="danger"), filename
+            return {'phase': 0}, dbc.Alert("❌ El preprocesador falló. Revisa el formato.", color="danger")
             
     except Exception as e:
-        return {'phase': 0}, dbc.Alert(f"❌ Error crítico en el servidor: {str(e)}", color="danger"), ""
+        return {'phase': 0}, dbc.Alert(f"❌ Error crítico en el servidor: {str(e)}", color="danger")
 
 if __name__ == "__main__":
     app.run(debug=True)
