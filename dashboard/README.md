@@ -46,7 +46,7 @@ git --version
 
 1. **Clonar el repositorio**
 ```bash
-git clone https://github.com/felipe-rivas/SPIS-ML.git
+git clone https://github.com/feliperivasdev/SPIS-ML.git
 cd SPIS-ML/dashboard
 ```
 
@@ -223,8 +223,8 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 ## 👨‍💻 Desarrollador
 
 **Felipe Rivas**
-- GitHub: [@felipe-rivas](https://github.com/felipe-rivas)
-- LinkedIn: [Felipe Rivas](https://linkedin.com/in/felipe-rivas)
+- GitHub: [@feliperivasdev](https://github.com/feliperivasdev)
+- Email: [davidfe.gustin@gmail.com](mailto:davidfe.gustin@gmail.com)
 
 ## 🙏 Agradecimientos
 
@@ -234,9 +234,9 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ## 📞 Soporte
 
-- **Issues**: [GitHub Issues](https://github.com/felipe-rivas/SPIS-ML/issues)
-- **Documentación**: [Wiki del proyecto](https://github.com/felipe-rivas/SPIS-ML/wiki)
-- **Email**: [felipe.rivas@example.com](mailto:felipe.rivas@example.com)
+- **Issues**: [GitHub Issues](https://github.com/feliperivasdev/SPIS-ML/issues)
+- **Documentación**: [Wiki del proyecto](https://github.com/feliperivasdev/SPIS-ML/wiki)
+- **Email**: [davidfe.gustin@gmail.com](mailto:davidfe.gustin@gmail.com)
 
 ---
 
@@ -244,7 +244,7 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 **SPIS-ML** - *Democratizando el análisis sísmico a través de tecnología inteligente*
 
-[![GitHub stars](https://img.shields.io/github/stars/felipe-rivas/SPIS-ML.svg)](https://github.com/felipe-rivas/SPIS-ML/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/felipe-rivas/SPIS-ML.svg)](https://github.com/felipe-rivas/SPIS-ML/network)
+[![GitHub stars](https://img.shields.io/github/stars/feliperivasdev/SPIS-ML.svg)](https://github.com/feliperivasdev/SPIS-ML/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/feliperivasdev/SPIS-ML.svg)](https://github.com/feliperivasdev/SPIS-ML/network)
 
 </div>
