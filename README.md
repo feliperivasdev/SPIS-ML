@@ -136,11 +136,6 @@ dashboard/
 - Evaluación de métricas (R², RMSE, MAE)
 - Gráficos de residuos y predicción vs observado
 
-### 4. **LSTM Prediction**
-- Red neuronal recurrente para series temporales
-- Predicción de secuencias de magnitudes
-- Arquitectura configurable
-
 ### 5. **Comparativa de Modelos**
 - Evaluación simultánea de múltiples algoritmos
 - Métricas comparativas de rendimiento
