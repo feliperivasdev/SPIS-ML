@@ -1,3 +1,8 @@
+# SPIS-ML | Seismic Performance Intelligent System
+# Version: 2.1.1
+# Author: Felipe Rivas
+# GitHub: https://github.com/feliperivasdev
+
 import os
 import sys
 import dash
@@ -18,52 +23,59 @@ from modules.reports_module import render_reports_module
 from modules.home_module import render_home_module, register_home_callbacks
 from preprocessor import preprocess_seismic_data
 
+# 1. Inicialización de la App
 app = dash.Dash(__name__, 
                 external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP], 
                 suppress_callback_exceptions=True)
+app.title = "SPIS-ML | Seismic Performance Intelligent System"
 
-# Registrar callbacks del Home (realtime + glosario)
+# 2. Referencia para el servidor (Necesario para Render/Gunicorn)
+server = app.server
+
+# 3. Registrar los callbacks del módulo Home
 register_home_callbacks(app)
 
-
-# --- LAYOUT PRINCIPAL ---
+# 4. Layout Base
 app.layout = html.Div([
-    dcc.Store(id='app-state', data={'phase': 0}), # 0: Home/Carga, 1: Dashboard
-    html.Div(id='main-layout-container')
+    dcc.Store(id='app-state', data={'phase': 0}), # 0: Home, 1: Dashboard
+    html.Div(id='main-layout-container'),
+    # Componente para scroll automático
+    html.Div(id='scroll-target') 
 ])
 
 # --- VISTA DE BIENVENIDA Y CARGA (Fase 0) ---
 def render_landing_page():
     return html.Div([
-        render_home_module(), # Tu nuevo módulo Pro con APIs y Glosario
+        render_home_module(), 
         dbc.Container([
-
             dbc.Row([
                 dbc.Col([
+                    html.Hr(className="my-5"),
+                    html.H2("Configuración de Datos", className="text-center mb-4", id="upload-anchor"),
                     dbc.Card([
-                        dbc.CardHeader("Carga de Datos para Análisis", className="bg-primary text-white fw-bold"),
+                        dbc.CardHeader("📥 Carga de Dataset (CSV)", className="bg-primary text-white fw-bold"),
                         dbc.CardBody([
                             dcc.Upload(
                                 id='upload-data',
-                                children=html.Div(['Arrastra o ', html.A('Selecciona un CSV')]),
+                                children=html.Div(['Arrastra o ', html.A('Selecciona tu archivo')]),
                                 style={
-                                    'width': '100%', 'height': '60px', 'lineHeight': '60px',
+                                    'width': '100%', 'height': '80px', 'lineHeight': '80px',
                                     'borderWidth': '2px', 'borderStyle': 'dashed',
                                     'borderRadius': '10px', 'textAlign': 'center', 'margin': '10px 0'
                                 },
                                 multiple=False
                             ),
-                            html.Div(id='file-name-display', className="text-center mb-3 text-muted"),
-                            dbc.Button("Procesar e Iniciar Dashboard", id="btn-run-process", color="success", className="w-100"),
+                            html.Div(id='file-name-display', className="text-center mb-3 text-primary fw-bold"),
+                            dbc.Button("🚀 Procesar e Iniciar Dashboard", id="btn-run-process", color="success", className="w-100 shadow-sm"),
                             html.Div(id='load-status', className="mt-3")
                         ])
-                    ], className="shadow border-0")
-                ], width={"size": 6, "offset": 3})
+                    ], className="shadow border-0 mb-5")
+                ], width={"size": 8, "offset": 2})
             ])
-        ], className="pb-5", id="upload-section")
+        ], id="upload-section")
     ])
 
-# --- VISTA DE DASHBOARD (Fase 1) ---
+# --- VISTA DE DASHBOARD TÉCNICO (Fase 1) ---
 def render_main_dashboard():
     return html.Div([
         dbc.NavbarSimple(
@@ -71,12 +83,12 @@ def render_main_dashboard():
             brand_href="#", color="primary", dark=True, className="mb-2 shadow"
         ),
         dbc.Tabs([
-            dbc.Tab(label="Exploración", tab_id="tab-exploration"),
+            dbc.Tab(label="Exploración Geográfica", tab_id="tab-exploration"),
             dbc.Tab(label="Gutenberg-Richter", tab_id="tab-gr"),
             dbc.Tab(label="Regresión Logarítmica", tab_id="tab-log"),
-            dbc.Tab(label="Comparativa", tab_id="tab-comparison"),
+            dbc.Tab(label="Comparativa de Modelos", tab_id="tab-comparison"),
             dbc.Tab(label="Densidad Sísmica", tab_id="tab-density"),
-            dbc.Tab(label="Reportes", tab_id="tab-reports"),
+            dbc.Tab(label="Reportes Gerenciales", tab_id="tab-reports"),
         ], id="tabs-navigation", active_tab="tab-exploration", className="px-4"),
         
         dcc.Loading(
@@ -87,17 +99,17 @@ def render_main_dashboard():
 
 # --- CALLBACKS DE NAVEGACIÓN ---
 
-# Switch entre Home y Dashboard
+# Switch de Fase (Landing vs Dashboard)
 @app.callback(
     Output('main-layout-container', 'children'), 
     Input('app-state', 'data')
 )
 def switch_phase(state):
-    if state['phase'] == 1:
+    if state.get('phase') == 1:
         return render_main_dashboard()
     return render_landing_page()
 
-# Control de contenido de pestañas
+# Renderizado de pestañas dentro del Dashboard
 @app.callback(
     Output("tab-content", "children"), 
     Input("tabs-navigation", "active_tab")
@@ -105,7 +117,7 @@ def switch_phase(state):
 def render_tab_content(active_tab):
     df = data_handler.get_data()
     if df is None:
-        return dbc.Alert("No se han cargado datos. Por favor, regresa al inicio.", color="warning")
+        return dbc.Alert("Los datos no están disponibles. Por favor, recarga el archivo.", color="warning", className="m-4")
 
     if active_tab == "tab-exploration": return render_exploration_view()
     elif active_tab == "tab-gr": return run_gr_analysis(df)
@@ -114,9 +126,20 @@ def render_tab_content(active_tab):
     elif active_tab == "tab-density": return render_density_analysis(df)
     elif active_tab == "tab-reports": return render_reports_module(df)
 
-# --- CALLBACK DE PROCESAMIENTO DE ARCHIVO ---
+# --- CALLBACK PARA MOSTRAR NOMBRE DE ARCHIVO ---
 @app.callback(
-    [Output('app-state', 'data'), Output('load-status', 'children'), Output('file-name-display', 'children')],
+    Output('file-name-display', 'children'),
+    Input('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def show_filename(filename):
+    if filename:
+        return f"📄 Archivo seleccionado: {filename}"
+    return ""
+
+# --- CALLBACK DE PROCESAMIENTO ---
+@app.callback(
+    [Output('app-state', 'data'), Output('load-status', 'children')],
     Input('btn-run-process', 'n_clicks'),
     State('upload-data', 'contents'),
     State('upload-data', 'filename'),
@@ -124,26 +147,26 @@ def render_tab_content(active_tab):
 )
 def process_and_start(n_clicks, contents, filename):
     if not contents:
-        return dash.no_update, dbc.Alert("⚠️ Por favor selecciona un archivo CSV.", color="warning"), ""
+        return dash.no_update, dbc.Alert("Por favor selecciona un archivo CSV.", color="warning")
     
     try:
         content_string = contents.split(',')[1]
         decoded = base64.b64decode(content_string)
         
-        # Guardar archivo
+        # En Render usamos 'data' o '/tmp'
         os.makedirs('data', exist_ok=True)
         csv_path = os.path.join('data', filename)
         with open(csv_path, 'wb') as f:
             f.write(decoded)
         
-        # Preprocesar
+        # Llamar al preprocesador (el que limpia los 600MB)
         if preprocess_seismic_data(csv_path):
-            return {'phase': 1}, "", f"✅ Archivo listo: {filename}"
+            return {'phase': 1}, dbc.Alert(f"✅ Dataset {filename} procesado correctamente. Iniciando dashboard...", color="success")
         else:
-            return {'phase': 0}, dbc.Alert("❌ Error en preprocesamiento de datos.", color="danger"), filename
+            return {'phase': 0}, dbc.Alert("❌ El preprocesador falló. Revisa el formato.", color="danger")
             
     except Exception as e:
-        return {'phase': 0}, dbc.Alert(f"❌ Error crítico: {str(e)}", color="danger"), ""
+        return {'phase': 0}, dbc.Alert(f"❌ Error crítico en el servidor: {str(e)}", color="danger")
 
 if __name__ == "__main__":
     app.run(debug=True)
