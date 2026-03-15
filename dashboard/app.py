@@ -20,6 +20,7 @@ from modules.model_log_regression_module import run_log_regression_analysis
 from modules.model_comparison_module import render_model_comparison
 from modules.density_module import render_density_analysis
 from modules.reports_module import render_reports_module
+from modules.regional_analysis_module import render_regional_analysis
 from modules.home_module import render_home_module, register_home_callbacks
 from preprocessor import preprocess_seismic_data
 
@@ -88,6 +89,7 @@ def render_main_dashboard():
             dbc.Tab(label="Regresión Logarítmica", tab_id="tab-log"),
             dbc.Tab(label="Comparativa de Modelos", tab_id="tab-comparison"),
             dbc.Tab(label="Densidad Sísmica", tab_id="tab-density"),
+            dbc.Tab(label="Análisis Regional", tab_id="tab-regional"),
             dbc.Tab(label="Reportes Gerenciales", tab_id="tab-reports"),
         ], id="tabs-navigation", active_tab="tab-exploration", className="px-4"),
         
@@ -124,6 +126,7 @@ def render_tab_content(active_tab):
     elif active_tab == "tab-log": return run_log_regression_analysis(df)
     elif active_tab == "tab-comparison": return render_model_comparison(df)
     elif active_tab == "tab-density": return render_density_analysis(df)
+    elif active_tab == "tab-regional": return render_regional_analysis(df)
     elif active_tab == "tab-reports": return render_reports_module(df)
 
 # --- CALLBACK PARA MOSTRAR NOMBRE DE ARCHIVO ---
