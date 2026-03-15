@@ -7,6 +7,8 @@ import io
 from fpdf import FPDF
 import plotly.io as pio
 
+MAX_DOWNLOAD_ROWS = 30
+
 def render_reports_module(df):
     min_mag, max_mag = df['mag'].min(), df['mag'].max()
     min_dep, max_dep = df['depth'].min(), df['depth'].max()
@@ -43,6 +45,11 @@ def render_reports_module(df):
                                        id="btn-pdf-gen", color="danger", className="w-100 mb-2 shadow"),
                             dbc.Button([html.I(className="bi bi-file-earmark-spreadsheet me-2"), "Exportar Base de Datos (CSV)"], 
                                        id="btn-csv-gen", color="success", className="w-100"),
+                            dbc.Alert(
+                                "Nota: Las descargas (PDF/CSV) están limitadas a un máximo de 30 registros para mantener la estabilidad del sistema.",
+                                color="warning",
+                                className="mt-3 mb-0 py-2"
+                            ),
                             
                             dcc.Download(id="down-pdf"),
                             dcc.Download(id="down-csv")
@@ -106,8 +113,9 @@ def generate_filtered_csv(n, mags, depths, start, end):
     dff = df[(df['mag'] >= mags[0]) & (df['mag'] <= mags[1]) &
              (df['depth'] >= depths[0]) & (df['depth'] <= depths[1]) &
              (df['time'] >= start) & (df['time'] <= end)]
-    csv_bytes = dff.to_csv(index=False).encode('utf-8')
-    return dcc.send_bytes(csv_bytes, "Base_Sismos_Filtrada.csv")
+    dff_limited = dff.head(MAX_DOWNLOAD_ROWS)
+    csv_bytes = dff_limited.to_csv(index=False).encode('utf-8')
+    return dcc.send_bytes(csv_bytes, "Base_Sismos_Filtrada_Top30.csv")
 
 @callback(
     Output("down-pdf", "data"),
@@ -122,21 +130,22 @@ def generate_executive_pdf(n, mags, depths, start, end):
     dff = df[(df['mag'] >= mags[0]) & (df['mag'] <= mags[1]) &
              (df['depth'] >= depths[0]) & (df['depth'] <= depths[1]) &
              (df['time'] >= start) & (df['time'] <= end)]
+    dff_limited = dff.head(MAX_DOWNLOAD_ROWS)
 
     # --- GENERAR IMÁGENES DE PLOTLY PARA EL PDF ---
     # 1. Mapa
-    fig_map = px.scatter_geo(dff, lat="latitude", lon="longitude", color="mag", size="mag",
+    fig_map = px.scatter_geo(dff_limited, lat="latitude", lon="longitude", color="mag", size="mag",
                              color_continuous_scale="Reds", projection="natural earth")
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, template="plotly_white")
     img_map = fig_map.to_image(format="png", width=1000, height=500, scale=2)
 
     # 2. Histograma
-    fig_hist = px.histogram(dff, x="mag", nbins=20, color_discrete_sequence=['darkred'], title="Distribución de Magnitudes")
+    fig_hist = px.histogram(dff_limited, x="mag", nbins=20, color_discrete_sequence=['darkred'], title="Distribución de Magnitudes")
     fig_hist.update_layout(template="plotly_white")
     img_hist = fig_hist.to_image(format="png", width=800, height=400)
 
     # 3. Perfil de Profundidad
-    fig_depth = px.scatter(dff, x="mag", y="depth", color="depth", color_continuous_scale="Reds_r")
+    fig_depth = px.scatter(dff_limited, x="mag", y="depth", color="depth", color_continuous_scale="Reds_r")
     fig_depth.update_layout(yaxis=dict(autorange="reversed"), template="plotly_white", title="Perfil de Subducción")
     img_depth = fig_depth.to_image(format="png", width=800, height=400)
 
@@ -161,9 +170,9 @@ def generate_executive_pdf(n, mags, depths, start, end):
     pdf.set_font("Helvetica", 'B', 11); pdf.set_fill_color(245, 245, 245)
     pdf.cell(0, 10, " INDICADORES CLAVE DEL PERIODO", ln=True, fill=True)
     pdf.set_font("Helvetica", '', 10)
-    pdf.cell(0, 8, f" - Total de sismos analizados: {len(dff):,}", ln=True)
-    pdf.cell(0, 8, f" - Magnitud máxima registrada: {dff['mag'].max():.1f} M", ln=True)
-    pdf.cell(0, 8, f" - Promedio de profundidad: {dff['depth'].mean():.1f} km", ln=True)
+    pdf.cell(0, 8, f" - Total de sismos analizados (máx. {MAX_DOWNLOAD_ROWS}): {len(dff_limited):,}", ln=True)
+    pdf.cell(0, 8, f" - Magnitud máxima registrada: {dff_limited['mag'].max() if not dff_limited.empty else 0:.1f} M", ln=True)
+    pdf.cell(0, 8, f" - Promedio de profundidad: {dff_limited['depth'].mean() if not dff_limited.empty else 0:.1f} km", ln=True)
 
     # PÁGINA 2: ANALÍTICA GRÁFICA
     pdf.add_page()
@@ -179,7 +188,7 @@ def generate_executive_pdf(n, mags, depths, start, end):
     # PÁGINA 3: TABLA DE DATOS
     pdf.add_page()
     pdf.set_font("Helvetica", 'B', 14)
-    pdf.cell(0, 10, "3. Catálogo de Eventos Críticos (Top 20)", ln=True)
+    pdf.cell(0, 10, "3. Catálogo de Eventos Críticos (Top 30)", ln=True)
     
     pdf.set_font("Helvetica", 'B', 9); pdf.set_fill_color(200, 0, 0); pdf.set_text_color(255, 255, 255)
     pdf.cell(45, 8, "Fecha UTC", 1, 0, 'C', True)
@@ -188,7 +197,7 @@ def generate_executive_pdf(n, mags, depths, start, end):
     pdf.cell(85, 8, "Coordenadas (Lat, Lon)", 1, 1, 'C', True)
     
     pdf.set_font("Helvetica", '', 8); pdf.set_text_color(0, 0, 0)
-    for _, row in dff.nlargest(20, 'mag').iterrows():
+    for _, row in dff_limited.nlargest(MAX_DOWNLOAD_ROWS, 'mag').iterrows():
         pdf.cell(45, 7, str(row['time'].date()), 1, 0, 'C')
         pdf.cell(30, 7, f"{row['mag']:.1f}", 1, 0, 'C')
         pdf.cell(30, 7, f"{row['depth']:.1f}", 1, 0, 'C')
