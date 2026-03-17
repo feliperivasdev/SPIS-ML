@@ -85,8 +85,8 @@ def render_main_dashboard():
         ),
         dbc.Tabs([
             dbc.Tab(label="Exploración Geográfica", tab_id="tab-exploration"),
-            dbc.Tab(label="Regresión Lineal", tab_id="tab-gr"),
-            dbc.Tab(label="Regresión Logarítmica", tab_id="tab-log"),
+            dbc.Tab(label="Gutenberg-Richter", tab_id="tab-gr"),
+            dbc.Tab(label="LSTM", tab_id="tab-log"),
             dbc.Tab(label="Comparativa de Modelos", tab_id="tab-comparison"),
             dbc.Tab(label="Densidad Sísmica", tab_id="tab-density"),
             dbc.Tab(label="Análisis Regional", tab_id="tab-regional"),

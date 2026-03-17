@@ -18,44 +18,49 @@ def render_density_analysis(df):
                 ], width=12)
             ], className="mb-4"),
 
+            # FILA 1: MAPA SOLO, ANCHO COMPLETO Y MÁS GRANDE
             dbc.Row([
-                # MAPA DE DENSIDAD (Lado Izquierdo)
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Mapa de Concentración (Hotspots Morados)"),
                         dbc.CardBody([
-                            dcc.Graph(id="mapa-densidad", style={"height": "65vh"})
+                            dcc.Graph(id="mapa-densidad", style={"height": "72vh"})
                         ])
-                    ], className="shadow-sm mb-4")
-                ], width=12, lg=7),
+                    ], className="shadow-sm")
+                ], width=12),
+            ], className="mb-4"),
 
-                # PANEL DERECHO (Top 5 e Histograma)
+            # FILA 2: TOP 5 DEBAJO DEL MAPA
+            dbc.Row([
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Top 5 Eventos de Mayor Magnitud"),
                         dbc.CardBody(id="top-zones-table", style={"fontSize": "0.85rem"})
-                    ], className="shadow-sm mb-4"),
-                    
+                    ], className="shadow-sm")
+                ], width=12),
+            ], className="mb-4"),
+
+            # FILA 3: HISTOGRAMA Y PERFIL HIPOCENTRAL LADO A LADO
+            dbc.Row([
+                dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Distribución Frecuente por Profundidad"),
                         dbc.CardBody([
-                            dcc.Graph(id="graph-depth-hist", style={"height": "32vh"})
+                            dcc.Graph(id="graph-depth-hist", style={"height": "40vh"})
                         ])
                     ], className="shadow-sm")
-                ], width=12, lg=5),
-            ]),
+                ], width=12, lg=6),
 
-            dbc.Row([
-                # PERFIL DE PROFUNDIDAD (Abajo, ancho completo para mejor visualización)
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Perfil Hipocentral Seleccionado (Corte Transversal)"),
                         dbc.CardBody([
-                            dcc.Graph(id="graph-depth-profile", style={"height": "45vh"})
+                            dcc.Graph(id="graph-depth-profile", style={"height": "40vh"})
                         ])
                     ], className="shadow-sm")
-                ], width=12, className="mt-4")
-            ])
+                ], width=12, lg=6),
+            ]),
+
         ], fluid=True)
     ])
 
