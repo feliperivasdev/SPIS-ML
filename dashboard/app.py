@@ -1,5 +1,5 @@
 # SPIS-ML | Seismic Performance Intelligent System
-# Version: 2.2.0
+# Version: 2.3.0
 # Author: Felipe Rivas
 # GitHub: https://github.com/feliperivasdev
 
