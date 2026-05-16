@@ -6,8 +6,14 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import tensorflow as tf
-from tensorflow.keras.models import load_model
+
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    load_model = None
 
 def create_dataset(dataset, look_back=100):
     dataX, dataY = [], []
@@ -19,14 +25,20 @@ def create_dataset(dataset, look_back=100):
 
 # Cargar modelo pre-entrenado
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'lstm_trained.h5')
-try:
-    model = load_model(MODEL_PATH)
-    print(f"✓ Modelo LSTM cargado desde {MODEL_PATH}")
-    MODEL_AVAILABLE = True
-except Exception as e:
-    print(f"⚠ Error cargando LSTM: {str(e)}")
-    model = None
-    MODEL_AVAILABLE = False
+model = None
+MODEL_AVAILABLE = False
+
+if TF_AVAILABLE and load_model is not None:
+    try:
+        model = load_model(MODEL_PATH)
+        print(f"✓ Modelo LSTM cargado desde {MODEL_PATH}")
+        MODEL_AVAILABLE = True
+    except Exception as e:
+        print(f"⚠ Error cargando LSTM: {str(e)}")
+        model = None
+        MODEL_AVAILABLE = False
+else:
+    print("⚠ TensorFlow no disponible. LSTM desactivado.")
 
 def run_lstm_prediction(df, magnitude_col='mag'):
     """

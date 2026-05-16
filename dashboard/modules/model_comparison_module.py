@@ -7,17 +7,27 @@ import dash_bootstrap_components as dbc
 from scipy.stats import linregress
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-import tensorflow as tf
-from tensorflow.keras.models import load_model
+
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    load_model = None
 
 # Cargar LSTM pre-entrenado
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'lstm_trained.h5')
-try:
-    lstm_model = load_model(MODEL_PATH)
-    LSTM_AVAILABLE = True
-except:
-    lstm_model = None
-    LSTM_AVAILABLE = False
+lstm_model = None
+LSTM_AVAILABLE = False
+
+if TF_AVAILABLE and load_model is not None:
+    try:
+        MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'lstm_trained.h5')
+        lstm_model = load_model(MODEL_PATH)
+        LSTM_AVAILABLE = True
+    except:
+        lstm_model = None
+        LSTM_AVAILABLE = False
 
 def create_dataset(dataset, look_back=100):
     dataX, dataY = [], []
