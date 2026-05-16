@@ -1,10 +1,31 @@
+import os
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 from scipy.stats import linregress
-from sklearn.metrics import r2_score
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+
+# Cargar LSTM pre-entrenado
+MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'lstm_trained.h5')
+try:
+    lstm_model = load_model(MODEL_PATH)
+    LSTM_AVAILABLE = True
+except:
+    lstm_model = None
+    LSTM_AVAILABLE = False
+
+def create_dataset(dataset, look_back=100):
+    dataX, dataY = [], []
+    for i in range(len(dataset) - look_back - 1):
+        a = dataset[i:(i + look_back), 0]
+        dataX.append(a)
+        dataY.append(dataset[i + look_back, 0])
+    return np.array(dataX), np.array(dataY)
 
 def render_model_comparison(df):
     # 1. Preparación de datos y cálculos dinámicos
@@ -22,8 +43,35 @@ def render_model_comparison(df):
     n_pred_linear = 10**log_n_pred
     r2_log = r2_score(n_obs, n_pred_linear)
 
+    # Cálculos para LSTM
+    r2_lstm = 0.0
+    if LSTM_AVAILABLE and lstm_model is not None:
+        try:
+            series = df_clean['mag'].values.reshape(-1, 1).astype('float32')
+            scaler = MinMaxScaler(feature_range=(0, 1))
+            dataset_scaled = scaler.fit_transform(series)
+
+            look_back = 100
+            train_size = int(len(dataset_scaled) * 0.7)
+            test = dataset_scaled[train_size:, :]
+
+            trainX, trainY = create_dataset(dataset_scaled[:train_size], look_back)
+            testX, testY = create_dataset(test, look_back)
+            testX = np.reshape(testX, (testX.shape[0], look_back, 1))
+
+            test_predict = lstm_model.predict(testX, verbose=0)
+            test_predict_real = scaler.inverse_transform(test_predict)
+            testY_real = scaler.inverse_transform(testY.reshape(-1, 1))
+
+            r2_lstm = r2_score(testY_real, test_predict_real)
+        except:
+            r2_lstm = 0.0
+
     # Determinación del mejor modelo
-    mejor_modelo = "Gutenberg-Richter" if r2_gr > r2_log else "Regresión Logarítmica"
+    modelos_r2 = {'Gutenberg-Richter': r2_gr, 'Regresión Logarítmica': r2_log}
+    if LSTM_AVAILABLE and r2_lstm > 0:
+        modelos_r2['LSTM Predicción'] = r2_lstm
+    mejor_modelo = max(modelos_r2, key=modelos_r2.get)
     
     # 2. Componente de Ficha Técnica
     ficha_tecnica = dbc.Card([
@@ -49,11 +97,16 @@ def render_model_comparison(df):
     ], color="dark", outline=True, className="shadow-sm mt-4")
 
     # 3. Gráfico Comparativo
-    fig = go.Figure(data=[
+    bars = [
         go.Bar(name='Gutenberg-Richter', x=['R²'], y=[r2_gr], marker_color='#2ECC71', text=[f"{r2_gr:.4f}"], textposition='auto'),
         go.Bar(name='Regresión Logarítmica', x=['R²'], y=[r2_log], marker_color='#F1C40F', text=[f"{r2_log:.4f}"], textposition='auto')
-    ])
-    fig.update_layout(barmode='group', template="plotly_white", yaxis=dict(range=[0.8, 1.0]), height=300)
+    ]
+
+    if LSTM_AVAILABLE and r2_lstm > 0:
+        bars.append(go.Bar(name='LSTM Predicción', x=['R²'], y=[r2_lstm], marker_color='#3498DB', text=[f"{r2_lstm:.4f}"], textposition='auto'))
+
+    fig = go.Figure(data=bars)
+    fig.update_layout(barmode='group', template="plotly_white", yaxis=dict(range=[0.0, 1.0]), height=350)
 
     # 4. Layout Final
     return html.Div([
@@ -68,7 +121,7 @@ def render_model_comparison(df):
                         html.Tbody([
                             html.Tr([html.Td("Gutenberg-Richter"), html.Td(f"{r2_gr:.4f}", className="fw-bold")]),
                             html.Tr([html.Td("Regresión Logarítmica"), html.Td(f"{r2_log:.4f}", className="fw-bold")]),
-                        ])
+                        ] + ([html.Tr([html.Td("LSTM Predicción"), html.Td(f"{r2_lstm:.4f}", className="fw-bold text-info")])] if (LSTM_AVAILABLE and r2_lstm > 0) else []))
                     ], bordered=True, hover=True))
                 ], className="shadow-sm")
             ], width=6),
