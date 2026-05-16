@@ -172,4 +172,5 @@ def process_and_start(n_clicks, contents, filename):
         return {'phase': 0}, dbc.Alert(f"❌ Error crítico en el servidor: {str(e)}", color="danger")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 8050))
+    app.run(host='0.0.0.0', port=port, debug=False)
