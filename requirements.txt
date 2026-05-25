@@ -3,12 +3,12 @@ dash==2.14.2
 dash-bootstrap-components==1.6.0
 Flask==3.0.0
 gunicorn==21.2.0
-pandas>=3.0.0
-numpy>=2.0.0
+pandas==2.0.3
+numpy==1.24.3
 scikit-learn==1.3.2
-scipy>=1.11.0
+scipy==1.11.4
 plotly==5.18.0
-matplotlib>=3.8.0
+matplotlib==3.8.2
 fpdf2==2.7.1
 kaleido==0.2.1
 requests==2.31.0
