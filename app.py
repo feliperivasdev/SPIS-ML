@@ -1,0 +1,197 @@
+# SPIS-ML | Seismic Performance Intelligent System
+# Version: 2.3.0
+# Author: Felipe Rivas
+# GitHub: https://github.com/feliperivasdev
+
+import os
+import sys
+import dash
+import dash_bootstrap_components as dbc
+from dash import html, dcc
+
+# Inicialización de la App
+app = dash.Dash(__name__, 
+                external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP], 
+                suppress_callback_exceptions=True)
+app.title = "SPIS-ML | Seismic Performance Intelligent System"
+
+# Referencia para el servidor (Necesario para Render/Gunicorn)
+server = app.server
+
+# Layout Base
+app.layout = dbc.Container([
+    dbc.NavbarSimple(
+        brand="SPIS-ML | Seismic Performance Intelligent System", 
+        brand_href="#", color="primary", dark=True, className="mb-4 shadow"
+    ),
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🌍 SPIS-ML - Sistema de Análisis Sísmico", className="bg-primary text-white fw-bold"),
+                dbc.CardBody([
+                    html.H4("Bienvenido al Dashboard Sísmico", className="card-title"),
+                    html.P("Aplicación de análisis de datos sísmicos en tiempo real.", className="card-text"),
+                    html.Hr(),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("📊 Análisis Disponibles"),
+                            html.Ul([
+                                html.Li("Exploración geográfica de sismos"),
+                                html.Li("Modelo de Gutenberg-Richter"),
+                                html.Li("Regresión logarítmica"),
+                            ])
+                        ]),
+                        dbc.Col([
+                            html.H5("📈 Características"),
+                            html.Ul([
+                                html.Li("Visualización interactiva"),
+                                html.Li("Comparativa de modelos"),
+                                html.Li("Exportación de reportes"),
+                            ])
+                        ]),
+                    ]),
+                    html.Hr(),
+                    html.P("Versión: 2.3.0", className="text-muted small"),
+                    html.P([
+                        html.A("GitHub", href="https://github.com/feliperivasdev/SPIS-ML", target="_blank", className="btn btn-primary btn-sm"),
+                        " ",
+                        html.A("Documentación", href="#", className="btn btn-secondary btn-sm"),
+                    ])
+                ])
+            ], className="shadow border-0 mt-5")
+        ], width={"size": 10, "offset": 1})
+    ])
+], fluid=True, className="p-4")
+
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 8050))
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+# --- VISTA DE BIENVENIDA Y CARGA (Fase 0) ---
+def render_landing_page():
+    return html.Div([
+        render_home_module(), 
+        dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    html.Hr(className="my-5"),
+                    html.H2("Configuración de Datos", className="text-center mb-4", id="upload-anchor"),
+                    dbc.Card([
+                        dbc.CardHeader("📥 Carga de Dataset (CSV)", className="bg-primary text-white fw-bold"),
+                        dbc.CardBody([
+                            dcc.Upload(
+                                id='upload-data',
+                                children=html.Div(['Arrastra o ', html.A('Selecciona tu archivo')]),
+                                style={
+                                    'width': '100%', 'height': '80px', 'lineHeight': '80px',
+                                    'borderWidth': '2px', 'borderStyle': 'dashed',
+                                    'borderRadius': '10px', 'textAlign': 'center', 'margin': '10px 0'
+                                },
+                                multiple=False
+                            ),
+                            html.Div(id='file-name-display', className="text-center mb-3 text-primary fw-bold"),
+                            dbc.Button("🚀 Procesar e Iniciar Dashboard", id="btn-run-process", color="success", className="w-100 shadow-sm"),
+                            html.Div(id='load-status', className="mt-3")
+                        ])
+                    ], className="shadow border-0 mb-5")
+                ], width={"size": 8, "offset": 2})
+            ])
+        ], id="upload-section")
+    ])
+
+# --- VISTA DE DASHBOARD TÉCNICO (Fase 1) ---
+def render_main_dashboard():
+    return html.Div([
+        dbc.NavbarSimple(
+            brand="SPIS-ML | Seismic Performance Intelligent System", 
+            brand_href="#", color="primary", dark=True, className="mb-2 shadow"
+        ),
+        dbc.Tabs([
+            dbc.Tab(label="Exploración Geográfica", tab_id="tab-exploration"),
+            dbc.Tab(label="Gutenberg-Richter", tab_id="tab-gr"),
+            dbc.Tab(label="Regresión Logarítmica", tab_id="tab-log"),
+            dbc.Tab(label="Comparativa de Modelos", tab_id="tab-comparison"),
+            dbc.Tab(label="Densidad Sísmica", tab_id="tab-density"),
+            dbc.Tab(label="Reportes Gerenciales", tab_id="tab-reports"),
+        ], id="tabs-navigation", active_tab="tab-exploration", className="px-4"),
+        
+        dcc.Loading(
+            html.Div(id="tab-content", className="p-4"), 
+            type="dot", color="#e84118"
+        )
+    ])
+
+# --- CALLBACKS DE NAVEGACIÓN ---
+
+# Switch de Fase (Landing vs Dashboard)
+@app.callback(
+    Output('main-layout-container', 'children'), 
+    Input('app-state', 'data')
+)
+def switch_phase(state):
+    if state.get('phase') == 1:
+        return render_main_dashboard()
+    return render_landing_page()
+
+# Renderizado de pestañas dentro del Dashboard
+@app.callback(
+    Output("tab-content", "children"), 
+    Input("tabs-navigation", "active_tab")
+)
+def render_tab_content(active_tab):
+    df = data_handler.get_data()
+    if df is None:
+        return dbc.Alert("Los datos no están disponibles. Por favor, recarga el archivo.", color="warning", className="m-4")
+
+    if active_tab == "tab-exploration": return render_exploration_view()
+    elif active_tab == "tab-gr": return run_gr_analysis(df)
+    elif active_tab == "tab-log": return run_log_regression_analysis(df)
+    elif active_tab == "tab-comparison": return render_model_comparison(df)
+    elif active_tab == "tab-density": return render_density_analysis(df)
+    elif active_tab == "tab-reports": return render_reports_module(df)
+
+# --- CALLBACK PARA MOSTRAR NOMBRE DE ARCHIVO ---
+@app.callback(
+    Output('file-name-display', 'children'),
+    Input('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def show_filename(filename):
+    if filename:
+        return f"📄 Archivo seleccionado: {filename}"
+    return ""
+
+# --- CALLBACK DE PROCESAMIENTO ---
+@app.callback(
+    [Output('app-state', 'data'), Output('load-status', 'children')],
+    Input('btn-run-process', 'n_clicks'),
+    State('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def process_and_start(n_clicks, contents, filename):
+    if not contents:
+        return dash.no_update, dbc.Alert("Por favor selecciona un archivo CSV.", color="warning")
+    
+    try:
+        content_string = contents.split(',')[1]
+        decoded = base64.b64decode(content_string)
+        
+        # En Render usamos 'data' o '/tmp'
+        os.makedirs('data', exist_ok=True)
+        csv_path = os.path.join('data', filename)
+        with open(csv_path, 'wb') as f:
+            f.write(decoded)
+        
+        # Llamar al preprocesador (el que limpia los 600MB)
+        if preprocess_seismic_data(csv_path):
+            return {'phase': 1}, dbc.Alert(f"✅ Dataset {filename} procesado correctamente. Iniciando dashboard...", color="success")
+        else:
+            return {'phase': 0}, dbc.Alert("❌ El preprocesador falló. Revisa el formato.", color="danger")
+            
+    except Exception as e:
+        return {'phase': 0}, dbc.Alert(f"❌ Error crítico en el servidor: {str(e)}", color="danger")
+
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 8050))
+    app.run(host='0.0.0.0', port=port, debug=False)
