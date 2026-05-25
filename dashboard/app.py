@@ -7,41 +7,65 @@ import os
 import sys
 import dash
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, State
-import base64
+from dash import html, dcc
 
-# Configuración de rutas
-sys.path.insert(0, os.path.dirname(__file__))
-
-import modules.data_handler as data_handler
-from modules.exploration_module import render_exploration_view
-from modules.model_Gutenberg_Richter_module import calcular_gutenberg_richter as run_gr_analysis
-from modules.model_log_regression_module import run_log_regression_analysis
-from modules.model_comparison_module import render_model_comparison
-from modules.density_module import render_density_analysis
-from modules.reports_module import render_reports_module
-from modules.home_module import render_home_module, register_home_callbacks
-from preprocessor import preprocess_seismic_data
-
-# 1. Inicialización de la App
+# Inicialización de la App
 app = dash.Dash(__name__, 
                 external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP], 
                 suppress_callback_exceptions=True)
 app.title = "SPIS-ML | Seismic Performance Intelligent System"
 
-# 2. Referencia para el servidor (Necesario para Render/Gunicorn)
+# Referencia para el servidor (Necesario para Render/Gunicorn)
 server = app.server
 
-# 3. Registrar los callbacks del módulo Home
-register_home_callbacks(app)
+# Layout Base
+app.layout = dbc.Container([
+    dbc.NavbarSimple(
+        brand="SPIS-ML | Seismic Performance Intelligent System", 
+        brand_href="#", color="primary", dark=True, className="mb-4 shadow"
+    ),
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🌍 SPIS-ML - Sistema de Análisis Sísmico", className="bg-primary text-white fw-bold"),
+                dbc.CardBody([
+                    html.H4("Bienvenido al Dashboard Sísmico", className="card-title"),
+                    html.P("Aplicación de análisis de datos sísmicos en tiempo real.", className="card-text"),
+                    html.Hr(),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("📊 Análisis Disponibles"),
+                            html.Ul([
+                                html.Li("Exploración geográfica de sismos"),
+                                html.Li("Modelo de Gutenberg-Richter"),
+                                html.Li("Regresión logarítmica"),
+                            ])
+                        ]),
+                        dbc.Col([
+                            html.H5("📈 Características"),
+                            html.Ul([
+                                html.Li("Visualización interactiva"),
+                                html.Li("Comparativa de modelos"),
+                                html.Li("Exportación de reportes"),
+                            ])
+                        ]),
+                    ]),
+                    html.Hr(),
+                    html.P("Versión: 2.3.0", className="text-muted small"),
+                    html.P([
+                        html.A("GitHub", href="https://github.com/feliperivasdev/SPIS-ML", target="_blank", className="btn btn-primary btn-sm"),
+                        " ",
+                        html.A("Documentación", href="#", className="btn btn-secondary btn-sm"),
+                    ])
+                ])
+            ], className="shadow border-0 mt-5")
+        ], width={"size": 10, "offset": 1})
+    ])
+], fluid=True, className="p-4")
 
-# 4. Layout Base
-app.layout = html.Div([
-    dcc.Store(id='app-state', data={'phase': 0}), # 0: Home, 1: Dashboard
-    html.Div(id='main-layout-container'),
-    # Componente para scroll automático
-    html.Div(id='scroll-target') 
-])
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 8050))
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 # --- VISTA DE BIENVENIDA Y CARGA (Fase 0) ---
 def render_landing_page():
