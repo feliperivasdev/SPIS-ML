@@ -2,6 +2,6 @@ services:
   - type: web
     name: spis-ml
     env: python
-    pythonVersion: 3.10.13
+    pythonVersion: 3.11
     buildCommand: pip install -r requirements.txt
     startCommand: cd dashboard && gunicorn -w 1 -b 0.0.0.0:$PORT app:server
