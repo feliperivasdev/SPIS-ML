@@ -1,3 +1,5 @@
+setuptools>=68.0.0
+wheel
 dash==2.14.2
 dash-bootstrap-components==1.6.0
 Flask==3.0.0
