@@ -1,8 +1,7 @@
-setuptools>=65.0.0
 dash>=2.14.0
 dash-bootstrap-components>=1.5.0
 Flask>=2.3.0
 gunicorn>=21.0.0
-requests>=2.31.0
 plotly>=5.17.0
+requests>=2.31.0
 fpdf2>=2.7.0
